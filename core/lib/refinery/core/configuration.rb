@@ -4,19 +4,18 @@ module Refinery
 
     config_accessor :rescue_not_found, :s3_backend, :base_cache_key, :site_name,
                     :google_analytics_page_code, :authenticity_token_on_frontend,
-                    :menu_hide_children, :menu_css, :dragonfly_secret,
+                    :dragonfly_secret,
                     :wymeditor_whitelist_tags, :javascripts, :stylesheets,
                     :s3_bucket_name, :s3_region, :s3_access_key_id,
-                    :s3_secret_access_key, :force_ssl
+                    :s3_secret_access_key, :force_ssl, :backend_route,
+                    :dragonfly_custom_backend_class, :dragonfly_custom_backend_opts
 
     self.rescue_not_found = false
     self.s3_backend = false
     self.base_cache_key = :refinery
     self.site_name = "Company Name"
     self.google_analytics_page_code = "UA-xxxxxx-x"
-    self.authenticity_token_on_frontend = true
-    self.menu_hide_children = false
-    self.menu_css = { :selected => "selected", :first => "first", :last => "last" }
+    self.authenticity_token_on_frontend = false
     self.dragonfly_secret = Array.new(24) { rand(256) }.pack('C*').unpack('H*').first
     self.wymeditor_whitelist_tags = {}
     self.javascripts = []
@@ -26,6 +25,9 @@ module Refinery
     self.s3_access_key_id = ENV['S3_KEY']
     self.s3_secret_access_key = ENV['S3_SECRET']
     self.force_ssl = false
+    self.backend_route = "refinery"
+    self.dragonfly_custom_backend_class = ''
+    self.dragonfly_custom_backend_opts = {}
 
     def config.register_javascript(name)
       self.javascripts << name
@@ -42,6 +44,14 @@ module Refinery
 
       def clear_stylesheets!
         self.stylesheets = []
+      end
+
+      def dragonfly_custom_backend?
+        config.dragonfly_custom_backend_class.present?
+      end
+
+      def dragonfly_custom_backend_class
+        config.dragonfly_custom_backend_class.constantize if dragonfly_custom_backend?
       end
 
       def site_name

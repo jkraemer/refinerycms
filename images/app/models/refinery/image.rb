@@ -1,5 +1,4 @@
 require 'dragonfly'
-require 'acts_as_indexed'
 
 module Refinery
   class Image < Refinery::Core::BaseModel
@@ -16,9 +15,6 @@ module Refinery
                        :of => :image,
                        :in => ::Refinery::Images.whitelisted_mime_types,
                        :message => :incorrect_format
-
-    # Docs for acts_as_indexed http://github.com/dougal/acts_as_indexed
-    acts_as_indexed :fields => [:title]
 
     # allows Mass-Assignment
     attr_accessible :id, :image, :image_size
@@ -42,7 +38,7 @@ module Refinery
 
     # Get a thumbnail job object given a geometry.
     def thumbnail(geometry = nil)
-      if geometry.is_a?(Symbol) and Refinery::Images.user_image_sizes.keys.include?(geometry)
+      if geometry.is_a?(Symbol) && Refinery::Images.user_image_sizes.keys.include?(geometry)
         geometry = Refinery::Images.user_image_sizes[geometry]
       end
 
@@ -55,7 +51,12 @@ module Refinery
 
     # Intelligently works out dimensions for a thumbnail of this image based on the Dragonfly geometry string.
     def thumbnail_dimensions(geometry)
-      geometry = geometry.to_s
+      geometry = if geometry.is_a?(Symbol) && Refinery::Images.user_image_sizes.keys.include?(geometry)
+        Refinery::Images.user_image_sizes[geometry]
+      else
+        geometry.to_s
+      end
+
       width = original_width = self.image_width.to_f
       height = original_height = self.image_height.to_f
       geometry_width, geometry_height = geometry.split(%r{\#{1,2}|\+|>|!|x}im)[0..1].map(&:to_f)

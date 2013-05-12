@@ -55,3 +55,5 @@ Refinery::I18n.frontend_locales.each do |lang|
     }
   end
 end
+
+I18n.locale = ::Refinery::I18n.default_locale

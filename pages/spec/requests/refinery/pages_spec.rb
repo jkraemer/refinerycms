@@ -8,7 +8,7 @@ module Refinery
     let(:draft_page) { Page.create :title => 'Draft', :draft => true }
     before do
       # Stub the menu pages we're expecting
-      Refinery::Page.stub(:fast_menu).and_return([home_page, about_page])
+      Page.stub(:fast_menu).and_return([home_page, about_page])
     end
 
     def standard_page_menu_items_exist?
@@ -21,17 +21,17 @@ module Refinery
 
     describe 'when marketable urls are' do
       describe 'enabled' do
-        before { Refinery::Pages.stub(:marketable_urls).and_return(true) }
+        before { Pages.stub(:marketable_urls).and_return(true) }
 
         it 'shows the homepage' do
-          Refinery::PagesController.any_instance.stub(:find_page).and_return(:home_page)
+          PagesController.any_instance.stub(:find_page).and_return(:home_page)
           visit '/'
 
           standard_page_menu_items_exist?
         end
 
         it 'shows a show page' do
-          Refinery::PagesController.any_instance.stub(:find_page).and_return(:about_page)
+          PagesController.any_instance.stub(:find_page).and_return(:about_page)
           visit refinery.page_path(about_page)
 
           standard_page_menu_items_exist?
@@ -39,10 +39,10 @@ module Refinery
       end
 
       describe 'disabled' do
-        before { Refinery::Pages.stub(:marketable_urls).and_return(false) }
+        before { Pages.stub(:marketable_urls).and_return(false) }
 
         it 'shows the homepage' do
-          Refinery::PagesController.any_instance.stub(:find_page).and_return(:home_page)
+          PagesController.any_instance.stub(:find_page).and_return(:home_page)
           visit '/'
 
           standard_page_menu_items_exist?
@@ -53,7 +53,7 @@ module Refinery
         end
 
         it 'shows the about page' do
-          Refinery::PagesController.any_instance.stub(:find_page).and_return(:about_page)
+          PagesController.any_instance.stub(:find_page).and_return(:about_page)
           visit refinery.page_path(about_page)
 
           standard_page_menu_items_exist?
@@ -66,6 +66,12 @@ module Refinery
 
       it "shows title at the top of the page" do
         find("#body_content_title").text.should == about_page.title
+      end
+
+      it "should hide title when config is set" do
+        Pages.stub(:show_title_in_body).and_return(false)
+        visit '/about'
+        page.should_not have_selector("#body_content_title")
       end
 
       it "uses title in the menu" do
@@ -81,7 +87,7 @@ module Refinery
       let(:page_mt) { Page.create :title => 'Company News' }
 
       before do
-        Refinery::Page.stub(:fast_menu).and_return([page_mt])
+        Page.stub(:fast_menu).and_return([page_mt])
       end
 
       describe 'set' do
@@ -126,7 +132,7 @@ module Refinery
         Page.create :title => 'About Us', :browser_title => 'About Our Company'
       }
       before do
-        Refinery::Page.stub(:fast_menu).and_return([page_bt])
+        Page.stub(:fast_menu).and_return([page_bt])
       end
       it 'should have the browser_title in the title tag' do
         visit '/about-us'
@@ -145,7 +151,7 @@ module Refinery
     describe 'custom_slug' do
       let(:page_cs) { Page.create :title => 'About Us' }
       before do
-        Refinery::Page.stub(:fast_menu).and_return([page_cs])
+        Page.stub(:fast_menu).and_return([page_cs])
       end
 
       describe 'not set' do
@@ -208,7 +214,9 @@ module Refinery
       let(:submenu_page) { about_page.children.create :title => 'Sample Submenu' }
 
       before do
-        Refinery::Page.stub(:fast_menu).and_return([home_page, submenu_page, about_page.reload].sort_by(&:lft))
+        Page.stub(:fast_menu).and_return(
+          [home_page, submenu_page, about_page.reload].sort_by(&:lft)
+        )
       end
 
       it "succeeds" do
@@ -224,7 +232,9 @@ module Refinery
     describe "special characters title" do
       let(:special_page) { Page.create :title => 'ä ö ü spéciål chåråctÉrs' }
       before do
-        Refinery::Page.stub(:fast_menu).and_return([home_page, about_page, special_page])
+        Page.stub(:fast_menu).and_return(
+          [home_page, about_page, special_page]
+        )
       end
 
       it "succeeds" do
@@ -244,7 +254,7 @@ module Refinery
       }
 
       before do
-        Refinery::Page.stub(:fast_menu).and_return(
+        Page.stub(:fast_menu).and_return(
           [home_page, special_page, about_page.reload].sort_by &:lft
         )
       end
@@ -264,7 +274,7 @@ module Refinery
       let(:hidden_page) { Page.create :title => "Hidden", :show_in_menu => false }
 
       before do
-        Refinery::Page.stub(:fast_menu).and_return([home_page, about_page])
+        Page.stub(:fast_menu).and_return([home_page, about_page])
       end
 
       it "succeeds" do
@@ -280,14 +290,13 @@ module Refinery
     end
 
     describe "skip to first child" do
-      let(:child_page) { about_page.children.create :title => "Child Page" }
+      let!(:child_page) { about_page.children.create :title => "Child Page" }
       before do
-       child_page
        about = about_page.reload
        about.skip_to_first_child = true
        about.save!
 
-       Refinery::Page.stub(:fast_menu).and_return([home_page, about, child_page].sort_by(&:lft))
+       Page.stub(:fast_menu).and_return([home_page, about, child_page].sort_by(&:lft))
       end
 
       it "succeeds" do
@@ -295,6 +304,29 @@ module Refinery
 
         within ".selected * > .selected a" do
           page.should have_content(child_page.title)
+        end
+      end
+    end
+
+    describe "full page caching" do
+      include CachingHelpers
+      let(:cached_page) { Page.create :title => 'Another Cached page' }
+
+      context "is enabled", :caching do 
+        it "should create a cached file when none exists" do
+          cached_page.should_not be_cached
+
+          visit refinery.page_path(cached_page)
+          
+          cached_page.should be_cached
+        end
+      end
+
+      context "is disabled" do
+        it "should not cache a page" do
+          page.should_not be_cached
+          visit refinery.page_path(cached_page)
+          cached_page.should_not be_cached
         end
       end
     end
@@ -363,7 +395,7 @@ module Refinery
           end
         end
       end
-
     end
+
   end
 end

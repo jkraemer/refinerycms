@@ -4,7 +4,7 @@ module Refinery
   module Admin
     describe PagesHelper do
       describe "#template_options" do
-        context "when page layout/view templte is set" do
+        context "when page layout/view template is set" do
           it "returns empty hash" do
             page = FactoryGirl.create(:page)
 
@@ -13,6 +13,20 @@ module Refinery
 
             page.layout_template = "rspec_layout"
             helper.template_options(:layout_template, page).should eq({})
+          end
+        end
+
+        context "when page layout/view template is set using symbols" do
+          before do
+            Pages.config.stub(:view_template_whitelist).and_return [:one, :two, :three]
+            Pages.config.stub(:layout_template_whitelist).and_return [:three, :one, :two]
+          end
+
+          it "works as expected" do
+            page = FactoryGirl.create(:page)
+
+            helper.template_options(:view_template, page).should eq(:selected => 'one' )
+            helper.template_options(:layout_template, page).should eq(:selected => 'three')
           end
         end
 
@@ -33,8 +47,8 @@ module Refinery
 
           context "when page doesn't have parent page" do
             before do
-              Refinery::Pages.stub(:view_template_whitelist).and_return(%w(one two))
-              Refinery::Pages.stub(:layout_template_whitelist).and_return(%w(two one))
+              Pages.config.stub(:view_template_whitelist).and_return %w(one two)
+              Pages.config.stub(:layout_template_whitelist).and_return %w(two one)
             end
 
             it "returns option hash with first item from configured whitelist" do
@@ -57,7 +71,7 @@ module Refinery
           it "adds 'hidden' label" do
             page.show_in_menu = false
 
-            helper.page_meta_information(page).should eq("<span class=\"label\">hidden</span>")
+            helper.page_meta_information(page).should eq(%q{<span class="label">hidden</span>})
           end
         end
 
@@ -65,7 +79,7 @@ module Refinery
           it "adds 'draft' label" do
             page.draft = true
 
-            helper.page_meta_information(page).should eq("<span class=\"label notice\">draft</span>")
+            helper.page_meta_information(page).should eq(%q{<span class="label notice">draft</span>})
           end
         end
       end
@@ -93,7 +107,7 @@ module Refinery
 
         context "when title for current locale isn't available" do
           it "returns existing title from translations" do
-            Refinery::Page::Translation.where(:locale => :en).first.delete
+            Page.translation_class.where(:locale => :en).first.destroy
             helper.page_title_with_translations(page).should eq("melnraksts")
           end
         end

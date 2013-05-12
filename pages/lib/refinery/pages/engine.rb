@@ -22,25 +22,13 @@ module Refinery
         Refinery::Plugin.register do |plugin|
           plugin.pathname = root
           plugin.name = 'refinery_pages'
-          plugin.version = %q{2.0.0}
-          plugin.menu_match = %r{refinery/page(_part|s_dialog)?s$}
+          plugin.menu_match = %r{refinery/page(_part|s_dialog)?s(/preview)?$}
           plugin.activity = {
             :class_name => :'refinery/page',
-            :nested_with => [:uncached_nested_url],
+            :nested_with => [:nested_url],
             :use_record_in_nesting => false
           }
           plugin.url = proc { Refinery::Core::Engine.routes.url_helpers.admin_pages_path }
-        end
-      end
-
-      initializer "refinery.pages acts_as_indexed" do
-        ActiveSupport.on_load(:active_record) do
-          require 'acts_as_indexed'
-          ActsAsIndexed.configure do |config|
-            config.index_file = Rails.root.join('tmp', 'index')
-            config.index_file_depth = 3
-            config.min_word_size = 3
-          end
         end
       end
 

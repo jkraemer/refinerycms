@@ -12,7 +12,7 @@ Refinery::Core::Engine.routes.draw do
 
     devise_for :refinery_user,
                :class_name => 'Refinery::User',
-               :path => 'refinery/users',
+               :path => "#{Refinery::Core.backend_route}/users",
                :controllers => { :registrations => 'refinery/users' },
                :skip => [:registrations],
                :path_names => { :sign_out => 'logout',
@@ -32,7 +32,7 @@ Refinery::Core::Engine.routes.draw do
     end
   end
 
-  namespace :admin, :path => 'refinery' do
+  namespace :admin, :path => Refinery::Core.backend_route do
     resources :users, :except => :show
   end
 end

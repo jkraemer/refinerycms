@@ -7,7 +7,6 @@ module Refinery
       class << self
         def setup!
           app_resources = ::Dragonfly[:refinery_resources]
-          app_resources.configure_with(:rails)
 
           app_resources.define_macro(::Refinery::Resource, :resource_accessor)
 
@@ -17,9 +16,11 @@ module Refinery
 
         def configure!
           app_resources = ::Dragonfly[:refinery_resources]
-          app_resources.configure_with(:rails) do |c|
+          app_resources.configure_with(:rails)
+          app_resources.configure do |c|
             c.datastore.root_path = Refinery::Resources.datastore_root_path
             c.url_format = Refinery::Resources.dragonfly_url_format
+            c.url_host = Refinery::Resources.dragonfly_url_host
             c.secret = Refinery::Resources.dragonfly_secret
           end
 
@@ -32,6 +33,10 @@ module Refinery
               # S3 Region otherwise defaults to 'us-east-1'
               s3.region = Refinery::Resources.s3_region if Refinery::Resources.s3_region
             end
+          end
+
+          if Resources.custom_backend?
+            app_resources.datastore = Resources.custom_backend_class.new(Resources.custom_backend_opts)
           end
         end
 
